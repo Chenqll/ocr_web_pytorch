@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- 引入样式文件 -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/vant@2.12/lib/index.css"
+    />
+
+    <!-- 引入 Vue 和 Vant 的 JS 文件 -->
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6/dist/vue.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vant@2.12/lib/vant.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/compressorjs/1.0.7/compressor.min.js"></script>
+
+    <title>OCR</title>
+  </head>
+
+  <body>
+    <div id="app">
+      <div class="background">
+        <img
+          src="https://oneflow-public.oss-cn-beijing.aliyuncs.com/OneCloud/img/20220117-leitao-ocr_car/bg2.jpg"
+          width="100%"
+          height="100%"
+          alt=""
+        />
+      </div>
+      <div class="content">
+        <div class="nav">
+          <ul>
+            <li>
+              <a id="nav-left" href="https://oneflow.cloud/">
+                <img
+                  src="https://oneflow-public.oss-cn-beijing.aliyuncs.com/OneCloud/img/20220117-leitao-ocr_car/of.png"
+                  width="30px"
+                  height="30px"
+                  style="vertical-align: middle"
+                />
+                <span style="color: azure">智能云</span>
+              </a>
+            </li>
+            <li>
+              <a id="nav-right" @click="ercode">
+                <img
+                  src="https://oneflow-public.oss-cn-beijing.aliyuncs.com/OneCloud/img/20220117-leitao-ocr_car/app.png"
+                  width="25px"
+                  height="25px"
+                  style="vertical-align: middle"
+                />
+                <span>手机端</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div id="light_weixin" class="white_content">
+          <img src="{{param_value}}" />
+        </div>
+        <div id="fade" class="black_overlay" @click="closeWindow"></div>
+        <div class="cards">
+          <div class="upimage">
+              <van-uploader
+                id="image"
+                name="image"
+                :after-read="afterRead"
+                :max-count="1"
+              />
+            </div>
+          <div id="cleft">
+              <p>文字检测结果</p>
+              <img
+                class="card-img-top"
+                :src="image_url"
+                alt="Card image cap"
+                style="width: 380px; height: 280px"
+              />
+          </div>
+          <div id="cright">
+            <div class="card" style="width: 18rem">
+              <div class="card-body">
+                <p>文字识别结果:</p>
+                <van-field
+                  v-model="prediction"
+                  type="textarea"
+                  autosize
+                  placeholder=""
+                  style=""
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+  <script type="module">
+    // 在 #app 标签下渲染一个按钮组件
+    new Vue({
+      el: "#app",
+      methods: {
+        ercode() {
+          document.getElementById("light_weixin").style.display = "block";
+          document.getElementById("fade").style.display = "block";
+        },
+        closeWindow() {
+          document.getElementById("light_weixin").style.display = "none";
+          document.getElementById("fade").style.display = "none";
+        },
+        hideModal() {
+          this.show = false;
+        },
+
+        submit() {
+          this.show = false;
+        },
+        afterRead(file) {
+          var vue_obj = this;
+          file.status = "uploading";
+          file.message = "上传中";
+          new Compressor(file.file, {
+            quality: 0.6,
+            maxWidth: 1024,
+            maxHeight: 960,
+
+            // The compression process is asynchronous,
+            // which means you have to access the `result` in the `success` hook function.
+            success(result) {
+              const formData = new FormData();
+
+              // The third parameter is required for server
+              formData.append("image", result, result.name);
+
+              // Send the compressed image file to server with XMLHttpRequest.
+              axios.post("", formData).then((res) => {
+                console.log("Upload success");
+                vue_obj.image_url = res.data.image_url;
+                vue_obj.prediction = res.data.prediction;
+                vant.Toast(res.data.prediction);
+              });
+            },
+            error(err) {
+              console.log(err.message);
+            },
+          });
+        },
+      },
+      data() {
+        return {
+          // demotext: "车牌示例:",
+          image_url:
+            "https://oneflow-public.oss-cn-beijing.aliyuncs.com/OneCloud/img/20220117-leitao-ocr_car/demo.jpg",
+          prediction: "京A 88888",
+        };
+      },
+    });
+    Vue.use(vant.Uploader);
+    Vue.use(vant.Col);
+    Vue.use(vant.Row);
+    Vue.use(vant.VanImage);
+    Vue.use(vant.Toast);
+    Vue.use(vant.NavBar);
+    Vue.use(vant.Field);
+  </script>
+  <style>
+    .black_overlay {
+      display: none;
+      position: absolute;
+      top: 0%;
+      left: 0%;
+      width: 100%;
+      height: 100%;
+      background-color: #00c0a5;
+      z-index: 1001;
+      -moz-opacity: 0.8;
+      opacity: 0.8;
+      filter: alpha(opacity=50);
+    }
+
+    .white_content {
+      border-radius: 20px;
+      display: none;
+      position: absolute;
+      top: 30%;
+      left: 40%;
+      background-color: #ffffff;
+      z-index: 1002;
+      /* 数字的大小指明了div的相对层，数字大的在上层 */
+      overflow: auto;
+    }
+    .background {
+      width: 100%;
+      height: 100%; /**宽高100%是为了图片铺满屏幕 **/
+      z-index: -1;
+      position: absolute;
+    }
+    .content {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+    }
+    .cards {
+      display: flex;
+      flex-direction: row;
+      /* flex-wrap: wrap; */
+      align-items: center;
+      justify-content: center;
+      margin-top: 2%;
+      /* width: 100%;
+  height: 100%; */
+    }
+    .card-body {
+      margin-top: 12%;
+    }
+    .nav {
+      width: 80%;
+      height: 1%;
+    }
+    .primary {
+      margin-top: 50px;
+      width: 120px;
+      height: 50px;
+      border: none;
+      border-radius: 12px;
+      background: #409eff;
+    }
+    .upimage {
+      margin-top: 15px;
+    }
+    ul {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      align-content: center;
+      margin: 10px;
+    }
+    li {
+      list-style-type: none;
+      width: 100px;
+      color: #ffffff;
+      /* margin:10px; */
+      text-align: center;
+      margin-top: 10px;
+    }
+    /* #image {
+      width: 10px;
+      height: 10px;
+      margin-top: 10px;
+    } */
+    .btn {
+      display: flex;
+      flex-direction: row;
+    }
+    #cleft {
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      width: 40%;
+      height: 100%;
+      margin-left: 100px;
+      color: #ffffff;
+    }
+    #cleft-text1 {
+      font-size: 40px;
+    }
+    #cleft-text2 {
+      margin-top: 25px;
+      font-size: 18px;
+    }
+    #cright {
+      margin-left: 150px;
+      height: 100%;
+      color: #ffffff;
+    }
+    input.van-field__control {
+      color: #ffffff;
+    }
+  </style>
+</html>
